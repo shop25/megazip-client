@@ -6,15 +6,15 @@ class Product
 {
     public string $rawNumber;
     public string $number;
-    public array $name = [];
-    public float $weight;
+    public array  $name = [];
+    public float  $weight;
 
     public static function fromResponse($data): ?self
     {
         $rawNumber = $data['number'] ?? '';
         $number = $data['number_formatted'] ?? '';
         $nameEn = $data['name'] ?? '';
-        $weight = (float)$data['weight'];
+        $weight = (float)($data['weight'] ?? '');
 
         if (!$rawNumber || !$nameEn) {
             return null;
