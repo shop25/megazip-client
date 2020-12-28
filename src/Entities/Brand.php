@@ -8,21 +8,23 @@ class Brand
     public string $name;
     public string $logo;
 
+    public function __construct(string $slug, string $name, string $logo = '')
+    {
+        $this->slug = $slug;
+        $this->name = $name;
+        $this->logo = $logo;
+    }
+
     public static function fromResponse($data): ?self
     {
         $slug = $data['slug'] ?? null;
         $name = $data['name'] ?? null;
-        $logo = $data['image'] ?? null;
+        $logo = $data['image'] ?? '';
 
         if (!$slug || !is_string($slug) || !$name || !is_string($name)) {
             return null;
         }
 
-        $brand = new self();
-        $brand->slug = $slug;
-        $brand->name = $name;
-        $brand->logo = is_string($logo) ? $logo : '';
-
-        return $brand;
+        return new self($slug, $name, is_string($logo) ? $logo : '');
     }
 }
