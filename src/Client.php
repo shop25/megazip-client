@@ -30,12 +30,23 @@ class Client
         $stack = HandlerStack::create();
 
         if ($options->logger !== null) {
-            $stack->push(
-                Middleware::log(
-                    $options->logger,
-                    new MessageFormatter($options->getFormat())
-                )
+            // Logger consumes response stream if it has res_body in its format
+            // We have to rewind the stream before we can use it again
+            $rewindResponse = Middleware::mapResponse(
+                function (ResponseInterface $response) {
+                    $response->getBody()->rewind();
+                    return $response;
+                }
             );
+
+            $log = Middleware::log(
+                $options->logger,
+                new MessageFormatter($options->getFormat())
+            );
+
+            // Rewind middleware must be executed last and middlewares are executed in reverse order
+            $stack->push($rewindResponse);
+            $stack->push($log);
         }
 
         $this->httpClient = new HttpClient(
