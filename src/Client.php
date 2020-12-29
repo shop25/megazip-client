@@ -4,6 +4,9 @@ namespace S25\MegazipApiClient;
 
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\MessageFormatter;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 use S25\MegazipApiClient\Entities\Brand;
@@ -14,13 +17,33 @@ class Client
 {
     private HttpClient $httpClient;
 
-    public function __construct(string $endpoint)
-    {
+    public function __construct(
+        string $endpoint,
+        Options $options = null
+    ) {
         if (!$endpoint) {
             throw new \RuntimeException('Invalid endpoint address ' . $endpoint);
         }
 
-        $this->httpClient = new HttpClient(['base_uri' => $endpoint]);
+        $options ??= new Options();
+
+        $stack = HandlerStack::create();
+
+        if ($options->logger !== null) {
+            $stack->push(
+                Middleware::log(
+                    $options->logger,
+                    new MessageFormatter($options->getFormat())
+                )
+            );
+        }
+
+        $this->httpClient = new HttpClient(
+            [
+                'base_uri' => $endpoint,
+                'handler' => $stack,
+            ]
+        );
     }
 
     /**
