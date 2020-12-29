@@ -6,8 +6,8 @@ class Product
 {
     public string $rawNumber;
     public string $number;
-    public array  $name = [];
-    public float  $weight;
+    public array $name = [];
+    public float $weight;
 
     public function __construct(string $rawNumber, string $number, array $name, float $weight)
     {

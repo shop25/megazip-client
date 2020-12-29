@@ -77,7 +77,7 @@ class Client
      * @return string[]
      * @throws GuzzleException
      */
-    public function fetchFormats($brandSlug): array
+    public function fetchFormats(string $brandSlug): array
     {
         $query = ['manufacturer' => $brandSlug];
 
@@ -130,7 +130,7 @@ class Client
 
         $query = ['manufacturer' => $brandSlug, 'data' => json_encode($productResources, JSON_THROW_ON_ERROR)];
 
-        $response = $this->httpClient->get('item_bombing', [RequestOptions::QUERY => $query]);
+        $response = $this->httpClient->post('item_bombing', [RequestOptions::FORM_PARAMS => $query]);
 
         $result = $this->validateArray($this->validateResponse($response));
 
