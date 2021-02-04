@@ -25,7 +25,7 @@ class Client
         Options $options = null
     ) {
         if (!$endpoint) {
-            throw new \RuntimeException('Invalid endpoint address ' . $endpoint);
+            throw new RuntimeException('Invalid endpoint address ' . $endpoint);
         }
 
         $options ??= new Options();
@@ -183,11 +183,11 @@ class Client
         $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
         if (!is_array($data)) {
-            throw new \RuntimeException('Response data is not array');
+            throw new RuntimeException('Response data is not array');
         }
 
         if (!array_key_exists('result', $data)) {
-            throw new \RuntimeException('No result is received');
+            throw new RuntimeException('No result is received');
         }
 
         if (array_key_exists('errors', $data)) {
@@ -195,11 +195,11 @@ class Client
 
             if (!is_array($errors)) {
                 $type = gettype($errors);
-                throw new \RuntimeException("«error» is expected to be an array, «{$type}» is given");
+                throw new RuntimeException("«error» is expected to be an array, «{$type}» is given");
             }
 
             if (!empty($errors)) {
-                throw new \RuntimeException(implode(' ', $errors));
+                throw new RuntimeException(implode(' ', $errors));
             }
         }
 
@@ -209,7 +209,7 @@ class Client
     private function rectifyArray($result, $path = 'result')
     {
         if (!is_array($result)) {
-            throw new \RuntimeException($path . ' must be an array');
+            throw new RuntimeException($path . ' must be an array');
         }
 
         return $result;
@@ -218,7 +218,7 @@ class Client
     private function validateOk($result): void
     {
         if (($result['stat'] ?? null) !== 'ok') {
-            throw new \RuntimeException('Result status is not "ok"');
+            throw new RuntimeException('Result status is not "ok"');
         }
     }
 }
