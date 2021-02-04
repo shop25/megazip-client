@@ -2,7 +2,9 @@
 
 namespace S25\MegazipApiClient\Entities;
 
-class Product
+use S25\MegazipApiClient\Utils;
+
+final class Product
 {
     public string $rawNumber;
     public string $number;
@@ -11,7 +13,7 @@ class Product
 
     public function __construct(string $rawNumber, string $number, array $name, float $weight)
     {
-        $this->rawNumber = self::rawNumber($rawNumber);
+        $this->rawNumber = Utils::rawNumber($rawNumber);
         $this->number = $number;
         $this->name = $name;
         $this->weight = $weight;
@@ -31,8 +33,5 @@ class Product
         return new self($rawNumber, $number, ['en' => $nameEn], $weight);
     }
 
-    public static function rawNumber(string $number): string
-    {
-        return strtoupper(preg_replace('/[^0-9a-z]+/ui', '', $number));
-    }
+
 }

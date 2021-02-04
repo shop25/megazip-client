@@ -2,7 +2,7 @@
 
 namespace S25\MegazipApiClient\Entities;
 
-class Brand
+final class Brand
 {
     public string $slug;
     public string $name;

@@ -11,7 +11,10 @@ use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 use S25\MegazipApiClient\Entities\Brand;
 use S25\MegazipApiClient\Entities\Product;
+use S25\MegazipApiClient\Entities\Supersession;
+use S25\MegazipApiClient\Entities\Weight;
 use S25\MegazipApiClient\Resources\Product as ProductResource;
+use S25\MegazipApiClient\Resources\Supersession as SupersessionResource;
 
 class Client
 {
@@ -65,9 +68,9 @@ class Client
     {
         $response = $this->httpClient->get('get_manufacturers');
 
-        $result = $this->validateResponse($response);
+        $result = $this->rectifyResult($response);
 
-        $records = $this->validateArray($result['manufacturers'] ?? null, 'result.manufacturers');
+        $records = $this->rectifyArray($result['manufacturers'] ?? null, 'result.manufacturers');
 
         return array_filter(array_map([Brand::class, 'fromResponse'], $records));
     }
@@ -83,9 +86,9 @@ class Client
 
         $response = $this->httpClient->get('number_formats', [RequestOptions::QUERY => $query]);
 
-        $records = $this->validateResponse($response);
+        $records = $this->rectifyResult($response);
 
-        return $this->validateArray($records);
+        return $this->rectifyArray($records);
     }
 
     public function fetchName(string $brandSlug, string $number): ?string
@@ -94,7 +97,7 @@ class Client
 
         $response = $this->httpClient->get('get_item', [RequestOptions::QUERY => $query]);
 
-        $result = $this->validateResponse($response);
+        $result = $this->rectifyResult($response);
 
         return $result['item']['name'] ?? null;
     }
@@ -111,9 +114,9 @@ class Client
 
         $response = $this->httpClient->post('get_items_bulk', [RequestOptions::FORM_PARAMS => $params]);
 
-        $result = $this->validateResponse($response);
+        $result = $this->rectifyResult($response);
 
-        $records = $this->validateArray($result['items'] ?? null, 'result.items');
+        $records = $this->rectifyArray($result['items'] ?? null, 'result.items');
 
         return array_filter(array_map([Product::class, 'fromResponse'], $records));
     }
@@ -132,16 +135,50 @@ class Client
 
         $response = $this->httpClient->post('item_bombing', [RequestOptions::FORM_PARAMS => $query]);
 
-        $result = $this->validateArray($this->validateResponse($response));
-
-        $status = $result['stat'] ?? null;
-
-        if ($status !== 'ok') {
-            throw new \RuntimeException('Result status is not "ok"');
-        }
+        $this->validateOk($this->rectifyResult($response));
     }
 
-    private function validateResponse(ResponseInterface $response)
+    /**
+     * @param string $brandSlug
+     * @param Supersession[] $supersessions
+     * @throws GuzzleException
+     */
+    public function updateSupersessions(string $brandSlug, array $supersessions): void
+    {
+        $supersessionResources = SupersessionResource::fromArray($supersessions);
+
+        $query = ['manufacturer' => $brandSlug, 'items' => json_encode($supersessionResources, JSON_THROW_ON_ERROR)];
+
+        $response = $this->httpClient->post('supersessions_update_bulk', [RequestOptions::FORM_PARAMS => $query]);
+
+        $this->validateOk($this->rectifyResult($response));
+    }
+
+    /**
+     * @param string $brandSlug
+     * @param Weight[] $weights
+     * @throws GuzzleException
+     */
+    public function updateWeights(string $brandSlug, array $weights): void
+    {
+        $query = [
+            'manufacturer' => $brandSlug,
+            'values' => json_encode(
+                array_map(
+                    function (Weight $weight) {
+                        return [$weight->rawNumber, $weight->value];
+                    },
+                    $weights
+                )
+            ),
+        ];
+
+        $response = $this->httpClient->post('weight_update_bulk', [RequestOptions::FORM_PARAMS => $query]);
+
+        $this->validateOk($this->rectifyResult($response));
+    }
+
+    private function rectifyResult(ResponseInterface $response)
     {
         $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -150,18 +187,38 @@ class Client
         }
 
         if (!array_key_exists('result', $data)) {
-            throw new \RuntimeException('No result is returned');
+            throw new \RuntimeException('No result is received');
+        }
+
+        if (array_key_exists('errors', $data)) {
+            $errors = $data['errors'];
+
+            if (!is_array($errors)) {
+                $type = gettype($errors);
+                throw new \RuntimeException("«error» is expected to be an array, «{$type}» is given");
+            }
+
+            if (!empty($errors)) {
+                throw new \RuntimeException(implode(' ', $errors));
+            }
         }
 
         return $data['result'];
     }
 
-    private function validateArray($result, $path = 'result')
+    private function rectifyArray($result, $path = 'result')
     {
         if (!is_array($result)) {
             throw new \RuntimeException($path . ' must be an array');
         }
 
         return $result;
+    }
+
+    private function validateOk($result): void
+    {
+        if (($result['stat'] ?? null) !== 'ok') {
+            throw new \RuntimeException('Result status is not "ok"');
+        }
     }
 }
