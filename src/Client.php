@@ -55,7 +55,7 @@ class Client
         $this->httpClient = new HttpClient(
             [
                 'base_uri' => $endpoint,
-                'handler' => $stack,
+                'handler'  => $stack,
             ]
         );
     }
@@ -80,13 +80,17 @@ class Client
      * @return string[]
      * @throws GuzzleException
      */
-    public function fetchFormats(string $brandSlug): array
+    public function fetchFormats(string $brandSlug): ?array
     {
         $query = ['manufacturer' => $brandSlug];
 
         $response = $this->httpClient->get('number_formats', [RequestOptions::QUERY => $query]);
 
         $records = $this->rectifyResult($response);
+
+        if ($records === false) {
+            return null;
+        }
 
         return $this->rectifyArray($records);
     }
@@ -163,7 +167,7 @@ class Client
     {
         $query = [
             'manufacturer' => $brandSlug,
-            'values' => json_encode(
+            'values'       => json_encode(
                 array_map(
                     function (Weight $weight) {
                         return [$weight->rawNumber, $weight->value];
