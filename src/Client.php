@@ -111,6 +111,7 @@ class Client
      * @param string[] $numbers
      * @return Product[]
      * @throws GuzzleException
+     * @throws \JsonException
      */
     public function fetchProducts(string $brandSlug, array $numbers): array
     {
@@ -130,6 +131,7 @@ class Client
      * @param Product[] $products
      * @return void
      * @throws GuzzleException
+     * @throws \JsonException
      */
     public function bombWithProducts(string $brandSlug, array $products): void
     {
@@ -146,6 +148,7 @@ class Client
      * @param string $brandSlug
      * @param Supersession[] $supersessions
      * @throws GuzzleException
+     * @throws \JsonException
      */
     public function updateSupersessions(string $brandSlug, array $supersessions): void
     {
@@ -162,6 +165,7 @@ class Client
      * @param string $brandSlug
      * @param Weight[] $weights
      * @throws GuzzleException
+     * @throws \JsonException
      */
     public function updateWeights(string $brandSlug, array $weights): void
     {
@@ -169,11 +173,12 @@ class Client
             'manufacturer' => $brandSlug,
             'values'       => json_encode(
                 array_map(
-                    function (Weight $weight) {
+                    static function (Weight $weight) {
                         return [$weight->rawNumber, $weight->value];
                     },
                     $weights
-                )
+                ),
+                JSON_THROW_ON_ERROR
             ),
         ];
 
@@ -184,14 +189,20 @@ class Client
 
     private function rectifyResult(ResponseInterface $response)
     {
-        $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        $content = $response->getBody()->getContents();
+
+        try {
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException("Response body is not a valid json: {$content}");
+        }
 
         if (!is_array($data)) {
-            throw new RuntimeException('Response data is not array');
+            throw new RuntimeException("Response data is not array: {$content}");
         }
 
         if (!array_key_exists('result', $data)) {
-            throw new RuntimeException('No result is received');
+            throw new RuntimeException("No result is received: {$content}");
         }
 
         if (array_key_exists('errors', $data)) {
@@ -210,7 +221,7 @@ class Client
         return $data['result'];
     }
 
-    private function rectifyArray($result, $path = 'result')
+    private function rectifyArray($result, $path = 'result'): array
     {
         if (!is_array($result)) {
             throw new RuntimeException($path . ' must be an array');
